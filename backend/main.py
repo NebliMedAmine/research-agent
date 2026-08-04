@@ -1,24 +1,61 @@
-"""FastAPI entrypoint for research-agent backend."""
-from fastapi import FastAPI
-import os
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from agent.graph import research_graph
+from langchain_core.messages import HumanMessage, AIMessage
 
+app = FastAPI(title="ResearchAgent API", version="1.0.0")
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="research-agent backend")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    @app.get("/health")
-    def health() -> dict:
-        return {"status": "ok"}
+class QueryRequest(BaseModel):
+    query: str
+    history: list = []
 
-    return app
+class QueryResponse(BaseModel):
+    answer: str
+    route: str = ""
+    status: str = "success"
 
+@app.get("/")
+def root():
+    return {"message": "ResearchAgent API is running"}
 
-app = create_app()
+@app.post("/query", response_model=QueryResponse)
+async def query_agent(request: QueryRequest):
+    if not request.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    try:
+        messages = []
+        for h in request.history:
+            if h["role"] == "user":
+                messages.append(HumanMessage(content=h["content"]))
+            elif h["role"] == "agent":
+                messages.append(AIMessage(content=h["content"]))
 
+        result = research_graph.invoke({
+            "query": request.query,
+            "messages": messages,
+            "route": "",
+            "specialist_output": "",
+            "final_answer": "",
+            "search_iterations": 0,
+            "sufficient": False
+        })
 
-if __name__ == "__main__":
-    # Run with: `uvicorn backend.main:app --reload --port 8000`
-    import uvicorn
+        return QueryResponse(
+            answer=result["final_answer"],
+            route=result["route"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    port = int(os.environ.get("PORT", "8000"))
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=True)
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
