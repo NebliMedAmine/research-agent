@@ -99,7 +99,7 @@ PORT=8000
 ### A) Web Researcher (real-time information)
 
 **Example query:**  
-`What are the latest major AI policy updates announced this week?`
+`What are the evolutions in quantum computing the last two months?`
 
 **Expected route:** `web`
 
@@ -108,7 +108,7 @@ PORT=8000
 ### B) Code Analyst (computation / analysis)
 
 **Example query:**  
-`Load this sample dataset and show summary statistics with a histogram.`
+`What is the result of 2^10?.`
 
 **Expected route:** `code`
 
@@ -117,7 +117,7 @@ PORT=8000
 ### C) General Agent (reasoning / knowledge)
 
 **Example query:**  
-`Explain the difference between supervised and unsupervised learning with practical examples.`
+`What are neural networks ? `
 
 **Expected route:** `general`
 
